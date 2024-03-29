@@ -8,7 +8,7 @@ from google.cloud import pubsub_v1
 project_id = "csye-7200-team-4"
 subscription_id = "my-subscription"
 # Number of seconds the subscriber should listen for messages
-timeout = 10.0
+timeout = 60.0
 
 subscriber = pubsub_v1.SubscriberClient()
 # The `subscription_path` method creates a fully qualified identifier
