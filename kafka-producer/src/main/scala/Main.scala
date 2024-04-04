@@ -20,16 +20,22 @@ object KafkaDataGenerator {
 
     val topic = "data-stream"
 
+    var i=0
+
     while (true) {
+      i=i+1
       val event = generateEventData(faker)
       //key value
       val message = new ProducerRecord[String, String](topic, UUID.randomUUID().toString, new Gson().toJson(event))
 
       producer.send(message)
-      println(s"Published message: $message")
+      println(s"Published message ${i}: $message")
 
-      val sleepTimeMillis = (1.second.toMillis + Random.nextInt(5).seconds.toMillis).toInt
+      //generating one record per second
+      //batch size of 350000
+      val sleepTimeMillis = (0.5.second.toMillis) //+ Random.nextInt(5).seconds.toMillis).toInt
       Thread.sleep(sleepTimeMillis)
+
     }
 
     producer.close()
