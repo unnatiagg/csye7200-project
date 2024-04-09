@@ -1,100 +1,89 @@
 
-import java.util
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.streaming.dstream.DStream
-import org.apache.spark.streaming.kafka010.{ConsumerStrategies, KafkaUtils, LocationStrategies}
-import org.apache.spark.streaming.{Seconds, StreamingContext}
 
-object IntegratingKafkaDStreams {
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql.functions.{col, explode, from_json}
+import org.apache.spark.sql.types.{ArrayType, StringType, StructType}
 
-  //Deserializer means taking the json object and converting it into DSSTREAMS
-  val spark = SparkSession.builder()
-    .appName("Spark DStreams + Kafka")
-    .master("local[2]")
-    .getOrCreate()
-
-  val ssc = new StreamingContext(spark.sparkContext, Seconds(300))
-
-  val kafkaParams: Map[String, Object] = Map(
-    "bootstrap.servers" -> "localhost:9092",
-    "key.serializer" -> classOf[StringSerializer], // send data to kafka
-    "value.serializer" -> classOf[StringSerializer],
-    "key.deserializer" -> classOf[StringDeserializer], // receiving data from kafka
-    "value.deserializer" -> classOf[StringDeserializer],
-    "auto.offset.reset" -> "latest",
-    "enable.auto.commit" -> false.asInstanceOf[Object]
-  )
-
-  val kafkaTopic = "data-stream"
-
-  def readFromKafka() = {
-    val topics = Array(kafkaTopic)
-    val kafkaDStream = KafkaUtils.createDirectStream(
-      ssc,
-      LocationStrategies.PreferConsistent,
-      /*
-       Distributes the partitions evenly across the Spark cluster.
-       Alternatives:
-       - PreferBrokers if the brokers and executors are in the same cluster
-       - PreferFixed
-      */
-      ConsumerStrategies.Subscribe[String, String](topics, kafkaParams + ("group.id" -> "group1"))
-      /*
-        Alternative
-        - SubscribePattern allows subscribing to topics matching a pattern
-        - Assign - advanced; allows specifying offsets and partitions per topic
-       */
-    )
-
-    /*
-    Printing the count of each processed Stream
-     */
-    //val processedStream = kafkaDStream.map(record => (record.key(), record.value()))
-
-    val countPeople: DStream[Long] = kafkaDStream.count()
-    countPeople.print()
-
-    ssc.start()
-    ssc.awaitTermination()
-  }
-
-  def writeToKafka() = {
-    val inputData = ssc.socketTextStream("localhost", 12345)
-
-    // transform data
-    val processedData = inputData.map(_.toUpperCase())
-
-    processedData.foreachRDD { rdd =>
-      rdd.foreachPartition { partition =>
-        // inside this lambda, the code is run by a single executor
-
-        val kafkaHashMap = new util.HashMap[String, Object]()
-        kafkaParams.foreach { pair =>
-          kafkaHashMap.put(pair._1, pair._2)
-        }
-
-        // producer can insert records into the Kafka topics
-        // available on this executor
-        val producer = new KafkaProducer[String, String](kafkaHashMap)
-
-        partition.foreach { value =>
-          val message = new ProducerRecord[String, String](kafkaTopic, null, value)
-          // feed the message into the Kafka topic
-          producer.send(message)
-        }
-
-        producer.close()
-      }
-    }
-
-    ssc.start()
-    ssc.awaitTermination()
-  }
-
+object SparkStreamingNetworkData {
   def main(args: Array[String]): Unit = {
-    readFromKafka()
-  }
 
+    val spark: SparkSession = SparkSession.builder()
+      .master("local[3]")
+      .appName("SparkStreaming")
+      .getOrCreate()
+
+    spark.sparkContext.setLogLevel("ERROR")
+
+    val df = spark.readStream
+      .format("kafka")
+      .option("kafka.bootstrap.servers", "localhost:9092")
+      .option("subscribe", "data-stream")
+      .option("startingOffsets", "latest")
+      .load()
+
+    import org.apache.spark.sql.types._
+
+    val eventDataSchema = StructType(Seq(
+      StructField("duration", FloatType, nullable = true),
+      StructField("src_bytes", FloatType, nullable = true),
+      StructField("dst_bytes", FloatType, nullable = true),
+      StructField("land", FloatType, nullable = true),
+      StructField("wrong_fragment", FloatType, nullable = true),
+      StructField("urgent", FloatType, nullable = true),
+      StructField("hot", FloatType, nullable = true),
+      StructField("num_failed_logins", FloatType, nullable = true),
+      StructField("logged_in", FloatType, nullable = true),
+      StructField("num_compromised", FloatType, nullable = true),
+      StructField("root_shell", FloatType, nullable = true),
+      StructField("su_attempted", FloatType, nullable = true),
+      StructField("num_root", FloatType, nullable = true),
+      StructField("num_file_creations", FloatType, nullable = true),
+      StructField("num_shells", FloatType, nullable = true),
+      StructField("num_access_files", FloatType, nullable = true),
+      StructField("num_outbound_cmds", FloatType, nullable = true),
+      StructField("is_host_login", FloatType, nullable = true),
+      StructField("is_guest_login", FloatType, nullable = true),
+      StructField("count", FloatType, nullable = true),
+      StructField("srv_count", FloatType, nullable = true),
+      StructField("serror_rate", FloatType, nullable = true),
+      StructField("srv_serror_rate", FloatType, nullable = true),
+      StructField("rerror_rate", FloatType, nullable = true),
+      StructField("srv_rerror_rate", FloatType, nullable = true),
+      StructField("same_srv_rate", FloatType, nullable = true),
+      StructField("diff_srv_rate", FloatType, nullable = true),
+      StructField("srv_diff_host_rate", FloatType, nullable = true),
+      StructField("dst_host_count", FloatType, nullable = true),
+      StructField("dst_host_srv_count", FloatType, nullable = true),
+      StructField("dst_host_same_srv_rate", FloatType, nullable = true),
+      StructField("dst_host_diff_srv_rate", FloatType, nullable = true),
+      StructField("dst_host_same_src_port_rate", FloatType, nullable = true),
+      StructField("dst_host_srv_diff_host_rate", FloatType, nullable = true),
+      StructField("dst_host_serror_rate", FloatType, nullable = true),
+      StructField("dst_host_srv_serror_rate", FloatType, nullable = true),
+      StructField("dst_host_rerror_rate", FloatType, nullable = true),
+      StructField("dst_host_srv_rerror_rate", FloatType, nullable = true)
+    ))
+
+
+    //val songs = df.selectExpr("cast (value as string)").select(from_json(col("value"),eventDataSchema).as("data")).select("data.*")
+
+   // val songExpanded = songs.select(explode(col("songDetails").as(Seq("trackName", "lyrics"))))
+
+    val songs = df.selectExpr("cast(value as string)")
+      .select(from_json(col("value"), eventDataSchema).as("data"))
+      .select("data.*")
+
+    val q = songs.writeStream
+      .outputMode("append")
+      .format("console")
+      .option("truncate", false) // To avoid truncating the output
+      .foreachBatch { (batchDF: DataFrame, batchId: Long) =>
+        val count = batchDF.count()
+        println(s"Batch ID: $batchId, Count: $count")
+      }
+      .start()
+
+    q.awaitTermination()
+
+  }
 }
