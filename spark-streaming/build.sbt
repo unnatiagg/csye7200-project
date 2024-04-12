@@ -10,19 +10,19 @@ lazy val root = (project in file("."))
 val kafkaVersion = "3.7.0"
 val sparkVersion = "3.5.0"
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-core" % sparkVersion,
+  "org.apache.spark" %% "spark-sql" % sparkVersion,
 
   // streaming
-  "org.apache.spark" %% "spark-streaming" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-streaming" % sparkVersion,
 
   // streaming-kafka
-  "org.apache.spark" % "spark-sql-kafka-0-10_2.12" % sparkVersion % "provided",
+  "org.apache.spark" % "spark-sql-kafka-0-10_2.12" % sparkVersion,
 
   // low-level integrations
-  "org.apache.spark" %% "spark-streaming-kafka-0-10" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-streaming-kafka-0-10" % sparkVersion ,
 
-  "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided"
+  "org.apache.spark" %% "spark-mllib" % sparkVersion
   // kafka
 //  "org.apache.kafka" %% "kafka" % kafkaVersion,
 //  "org.apache.kafka" % "kafka-streams" % kafkaVersion
