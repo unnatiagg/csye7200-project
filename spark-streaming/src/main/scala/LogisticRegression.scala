@@ -18,6 +18,9 @@ object LogisticRegression extends App {
 
   val eventDataSchema = new StructType()
     .add("duration", IntegerType, nullable = false)
+    .add("protocol_type", StringType, nullable = false)
+    .add("service", StringType, nullable = false)
+    .add("flag", StringType, nullable = false)
     .add("src_bytes", IntegerType, nullable = false)
     .add("dst_bytes", IntegerType, nullable = false)
     .add("land", IntegerType, nullable = false)
@@ -55,30 +58,105 @@ object LogisticRegression extends App {
     .add("dst_host_srv_serror_rate", DoubleType, nullable = false)
     .add("dst_host_rerror_rate", DoubleType, nullable = false)
     .add("dst_host_srv_rerror_rate", DoubleType, nullable = false)
-    .add("status", StringType, nullable = false)
+    .add("attack", StringType, nullable = false)
+    .add("last_flag", StringType, nullable = false)
 
   val df = spark.read
   .format("csv")
-  .option("header", true)
+  //.option("header", true)
   .option("sep", ",")
   .schema(eventDataSchema)
-  .load("src/resources/data/TrainDf.csv")
+  .load("/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/spark-streaming/src/resources/data/Train.csv")
 
   df.printSchema()
 
-//  Data Preparation
+  val stringColumns = Array(
+    "protocol_type",
+    "service",
+    "flag"
+  )
 
-  val featureCols = df.columns.slice(0, df.columns.length - 1)
-  val labelIndexer = new StringIndexer()
-    .setInputCol("status")
-    .setOutputCol("label")
+  val numericalColumns = Array(
+    "duration",
+    "src_bytes",
+    "dst_bytes",
+    "land",
+    "wrong_fragment",
+    "urgent",
+    "hot",
+    "num_failed_logins",
+    "logged_in",
+    "num_compromised",
+    "root_shell",
+    "su_attempted",
+    "num_root",
+    "num_file_creations",
+    "num_shells",
+    "num_access_files",
+    "num_outbound_cmds",
+    "is_host_login",
+    "is_guest_login",
+    "count",
+    "srv_count",
+    "serror_rate",
+    "srv_serror_rate",
+    "rerror_rate",
+    "srv_rerror_rate",
+    "same_srv_rate",
+    "diff_srv_rate",
+    "srv_diff_host_rate",
+    "dst_host_count",
+    "dst_host_srv_count",
+    "dst_host_same_srv_rate",
+    "dst_host_diff_srv_rate",
+    "dst_host_same_src_port_rate",
+    "dst_host_srv_diff_host_rate",
+    "dst_host_serror_rate",
+    "dst_host_srv_serror_rate",
+    "dst_host_rerror_rate",
+    "dst_host_srv_rerror_rate"
+  )
 
+  // Step 2: Create StringIndexers for string columns
+  val stringIndexers = stringColumns.map { col =>
+    new StringIndexer()
+      .setInputCol(col)
+      .setOutputCol(s"${col}_index")
+  }
+
+  // Step 3: Assemble string columns into a single feature vector
+  val stringAssembler = new VectorAssembler()
+    .setInputCols(stringColumns.map(_ + "_index"))
+    .setOutputCol("string_features")
+
+  // Step 4: Assemble numerical columns into a single feature vector
+  val numericalAssembler = new VectorAssembler()
+    .setInputCols(numericalColumns)
+    .setOutputCol("numerical_features")
+
+  // Step 5: Combine both string and numerical feature vectors into a final feature vector
   val assembler = new VectorAssembler()
-    .setInputCols(featureCols)
+    .setInputCols(Array("string_features", "numerical_features"))
     .setOutputCol("features")
 
-  val stages = Array(assembler, labelIndexer)
-  val pipeline = new Pipeline().setStages(stages)
+  val labelIndexer = new StringIndexer()
+    .setInputCol("attack")
+    .setOutputCol("label")
+
+  // Step 6: Define a pipeline
+  val pipeline = new Pipeline().setStages(stringIndexers ++ Array(stringAssembler, numericalAssembler, assembler, labelIndexer ))
+
+  //  Data Preparation
+
+  //val featureCols = df.columns.slice(0, df.columns.length - 2)
+
+
+//  val assembler = new VectorAssembler()
+//    .setInputCols(featureCols)
+//    .setOutputCol("features")
+
+ // val stages = Array(assembler, labelIndexer)
+//  val pipeline = new Pipeline().setStages(stages)
   val pipelineModel = pipeline.fit(df)
   val data = pipelineModel.transform(df).select("features", "label")
 //
@@ -108,10 +186,10 @@ object LogisticRegression extends App {
   println(s"  Error  Rate = ${"%.4f".format(1.0 - elr)}")
 
   // Saving the model
-  val lrmodelPath = "src/resources/models/logistic_regresssion"
+  val lrmodelPath = "model/resources/models/logistic_regresssion"
   modelLr.write.overwrite().save(lrmodelPath)
 
-  val pipelineModelPath = "src/resources/models/pipelineModel"
+  val pipelineModelPath = "model/resources/models/pipelineModel"
   pipelineModel.write.overwrite().save(pipelineModelPath)
 
 }

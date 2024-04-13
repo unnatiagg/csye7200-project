@@ -3,7 +3,7 @@ import org.apache.spark.sql.functions.{col, explode, from_json, lit}
 import org.apache.spark.sql.types.{ArrayType, StringType, StructType}
 import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
-import org.apache.spark.ml.classification.{LogisticRegression, LogisticRegressionModel}
+import org.apache.spark.ml.classification.{LogisticRegression, LogisticRegressionModel, RandomForestClassifier,RandomForestClassificationModel}
 import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 
 
@@ -18,13 +18,21 @@ object SparkStreamingNetworkData {
 
     spark.sparkContext.setLogLevel("ERROR")
 
-    val lrmodelPath = "src/resources/models/logistic_regresssion"
-    val lrModel = LogisticRegressionModel.load(lrmodelPath)
+    // val lrmodelPath = "src/resources/models/logistic_regresssion"
+    //val lrModel = LogisticRegressionModel.load(lrmodelPath)
 
-    val pipelineModelPath = "src/resources/models/pipelineModel"
-    val pipelineModel = PipelineModel.load(pipelineModelPath)
+    val rfModelPath = "/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/model/resources/models/random_forest_classification"
+    val rfModel = RandomForestClassificationModel.load(rfModelPath)
 
-    val outputResultPath = "src/resources/result/lr_output.csv"
+    val pipelineRfModelPath = "/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/model/resources/models/pipelineModel2"
+    val pipelineRfModel = PipelineModel.load(pipelineRfModelPath)
+
+    // val pipelineModelPath = "src/resources/models/pipelineModel"
+    // val pipelineModel = PipelineModel.load(pipelineModelPath)
+
+    val outputResultPath = "src/resources/result/csv"
+
+    val checkpointPath = "src/resources/result/metadata"
 
     val df = spark.readStream
       .format("kafka")
@@ -37,6 +45,9 @@ object SparkStreamingNetworkData {
 
     val eventDataSchema = new StructType()
       .add("duration", IntegerType, nullable = false)
+      .add("protocol_type", StringType, nullable = false)
+      .add("service", StringType, nullable = false)
+      .add("flag", StringType, nullable = false)
       .add("src_bytes", IntegerType, nullable = false)
       .add("dst_bytes", IntegerType, nullable = false)
       .add("land", IntegerType, nullable = false)
@@ -74,64 +85,31 @@ object SparkStreamingNetworkData {
       .add("dst_host_srv_serror_rate", DoubleType, nullable = false)
       .add("dst_host_rerror_rate", DoubleType, nullable = false)
       .add("dst_host_srv_rerror_rate", DoubleType, nullable = false)
-      .add("status", StringType, nullable = false)
+      .add("attack", StringType, nullable = false)
+      .add("last_flag", StringType, nullable = false)
 
-    val songs = df.selectExpr("cast(value as string)")
+    val nLogs = df.selectExpr("cast(value as string)")
       .select(from_json(col("value"), eventDataSchema).as("data"))
       .select("data.*")
 
-    val q = songs
-      .writeStream
+    def processStreamingData(batchDF: DataFrame): DataFrame = {
+      rfModel.transform(pipelineRfModel.transform(batchDF)).select("label", "prediction")
+    }
+
+    val nPredictions = processStreamingData(nLogs)
+
+
+    val query = nPredictions.writeStream
+      .format("csv")
+      .option("header", "true")
+      .option("checkpointLocation", checkpointPath) // Specify checkpoint location
       .outputMode("append")
-      .format("console")
-      .option("truncate", false) // To avoid truncating the output
-      .foreachBatch { (batchDF: DataFrame, batchId: Long) =>
-        val count = batchDF.count()
-        println(s"Batch ID: $batchId, Count: $count")
-
-        batchDF.printSchema()
-        if (count>0)
-          {
-            // Transform the test data using the pipeline model
-            val testData = pipelineModel.transform(batchDF).select("features", "label")
-
-            // Make predictions using the logistic regression model
-            val predictions = lrModel.transform(testData)
-
-            // Display the predictions
-            predictions.show()
-//            predictions.printSchema()
-
-            // Save the result
-            // Append the batchDF and predictions
-//            val resultDF = batchDF.join(predictions, Seq("prediction"), "inner")
-//
-//            // Append all of them and save them in a file
-//            resultDF
-//              .write
-//              .mode("append")
-//              .format("csv")
-//              .option("header", "true")
-//              .save(outputResultPath)
-
-            val evaluatorLr = new MulticlassClassificationEvaluator()
-              .setLabelCol("label")
-              .setPredictionCol("prediction")
-              .setMetricName("accuracy")
-
-            val elr = evaluatorLr.evaluate(predictions)
-
-            // Printing the results
-            println("--- Logistic Regression --- ")
-            println(s"Accuracy Rate = ${"%.4f".format(elr)}")
-            println(s"  Error  Rate = ${"%.4f".format(1.0 - elr)}")
-
-          }
-;
-      }
+      .option("path", outputResultPath)
       .start()
 
-    q.awaitTermination()
+
+    // Start the streaming query
+    query.awaitTermination()
 
   }
 }

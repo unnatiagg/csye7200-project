@@ -10,6 +10,9 @@ import scala.io.Source
 object KafkaDataCSV {
   case class EventData(
                         duration: Int,
+                        protocol_type: String,
+                        service: String,
+                        flag: String,
                         src_bytes: Int,
                         dst_bytes: Int,
                         land: Int,
@@ -47,7 +50,8 @@ object KafkaDataCSV {
                         dst_host_srv_serror_rate: Double,
                         dst_host_rerror_rate: Double,
                         dst_host_srv_rerror_rate: Double,
-                        status: String
+                        attack: String,
+                        last_flag: String
                       )
 
 
@@ -59,7 +63,7 @@ object KafkaDataCSV {
     kafkaProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
     kafkaProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
     val producer = new KafkaProducer[String, String](kafkaProps)
-    val csvFilePath = "src/main/resources/TrainDf.csv"
+    val csvFilePath = "src/main/resources/Test.csv"
     val topic = "data-stream"
     val csvSource = Source.fromFile(csvFilePath)
     val csvLines = csvSource.getLines().toList
@@ -89,44 +93,48 @@ object KafkaDataCSV {
     try {
       Some(EventData(
         duration = tokens(0).toInt,
-        src_bytes = tokens(1).toInt,
-        dst_bytes = tokens(2).toInt,
-        land = tokens(3).toInt,
-        wrong_fragment = tokens(4).toInt,
-        urgent = tokens(5).toInt,
-        hot = tokens(6).toInt,
-        num_failed_logins = tokens(7).toInt,
-        logged_in = tokens(8).toInt,
-        num_compromised = tokens(9).toInt,
-        root_shell = tokens(10).toInt,
-        su_attempted = tokens(11).toInt,
-        num_root = tokens(12).toInt,
-        num_file_creations = tokens(13).toInt,
-        num_shells = tokens(14).toInt,
-        num_access_files = tokens(15).toInt,
-        num_outbound_cmds = tokens(16).toInt,
-        is_host_login = tokens(17).toInt,
-        is_guest_login = tokens(18).toInt,
-        count = tokens(19).toInt,
-        srv_count = tokens(20).toInt,
-        serror_rate = tokens(21).toDouble,
-        srv_serror_rate = tokens(22).toDouble,
-        rerror_rate = tokens(23).toDouble,
-        srv_rerror_rate = tokens(24).toDouble,
-        same_srv_rate = tokens(25).toDouble,
-        diff_srv_rate = tokens(26).toDouble,
-        srv_diff_host_rate = tokens(27).toDouble,
-        dst_host_count = tokens(28).toInt,
-        dst_host_srv_count = tokens(29).toInt,
-        dst_host_same_srv_rate = tokens(30).toDouble,
-        dst_host_diff_srv_rate = tokens(31).toDouble,
-        dst_host_same_src_port_rate = tokens(32).toDouble,
-        dst_host_srv_diff_host_rate = tokens(33).toDouble,
-        dst_host_serror_rate = tokens(34).toDouble,
-        dst_host_srv_serror_rate = tokens(35).toDouble,
-        dst_host_rerror_rate = tokens(36).toDouble,
-        dst_host_srv_rerror_rate = tokens(37).toDouble,
-        status = tokens(38).toString
+        protocol_type = tokens(1),
+        service = tokens(2),
+        flag = tokens(3),
+        src_bytes = tokens(4).toInt,
+        dst_bytes = tokens(5).toInt,
+        land = tokens(6).toInt,
+        wrong_fragment = tokens(7).toInt,
+        urgent = tokens(8).toInt,
+        hot = tokens(9).toInt,
+        num_failed_logins = tokens(10).toInt,
+        logged_in = tokens(11).toInt,
+        num_compromised = tokens(12).toInt,
+        root_shell = tokens(13).toInt,
+        su_attempted = tokens(14).toInt,
+        num_root = tokens(15).toInt,
+        num_file_creations = tokens(16).toInt,
+        num_shells = tokens(17).toInt,
+        num_access_files = tokens(18).toInt,
+        num_outbound_cmds = tokens(19).toInt,
+        is_host_login = tokens(20).toInt,
+        is_guest_login = tokens(21).toInt,
+        count = tokens(22).toInt,
+        srv_count = tokens(23).toInt,
+        serror_rate = tokens(24).toDouble,
+        srv_serror_rate = tokens(25).toDouble,
+        rerror_rate = tokens(26).toDouble,
+        srv_rerror_rate = tokens(27).toDouble,
+        same_srv_rate = tokens(28).toDouble,
+        diff_srv_rate = tokens(29).toDouble,
+        srv_diff_host_rate = tokens(30).toDouble,
+        dst_host_count = tokens(31).toInt,
+        dst_host_srv_count = tokens(32).toInt,
+        dst_host_same_srv_rate = tokens(33).toDouble,
+        dst_host_diff_srv_rate = tokens(34).toDouble,
+        dst_host_same_src_port_rate = tokens(35).toDouble,
+        dst_host_srv_diff_host_rate = tokens(36).toDouble,
+        dst_host_serror_rate = tokens(37).toDouble,
+        dst_host_srv_serror_rate = tokens(38).toDouble,
+        dst_host_rerror_rate = tokens(39).toDouble,
+        dst_host_srv_rerror_rate = tokens(40).toDouble,
+        attack = tokens(41),
+        last_flag = tokens(42)
       ))
     } catch {
       case _: NumberFormatException => None
