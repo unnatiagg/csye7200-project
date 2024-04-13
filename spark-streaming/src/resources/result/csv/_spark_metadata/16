@@ -1,2 +1,2 @@
 v1
-{"path":"file:///Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/spark-streaming/src/resources/result/csv/part-00000-9c9a207c-15f3-4e78-9908-218d87386b45-c000.csv","size":5870,"isDir":false,"modificationTime":1712958610239,"blockReplication":1,"blockSize":33554432,"action":"add"}
+{"path":"file:///Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/spark-streaming/src/resources/result/csv/part-00000-a20da3f6-f0b1-4fd3-aa26-c1d035ca2fea-c000.csv","size":5512,"isDir":false,"modificationTime":1713045049461,"blockReplication":1,"blockSize":33554432,"action":"add"}

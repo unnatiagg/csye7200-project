@@ -1,9 +1,11 @@
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.{LogisticRegression, RandomForestClassifier}
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
-import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
+import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorAssembler}
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.catalyst.dsl.expressions.{DslAttr, StringToAttributeConversionHelper}
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
 
 object RandomForestClassifier extends App {
 
@@ -173,9 +175,44 @@ object RandomForestClassifier extends App {
   // Making predictions
   val predictionsLr = modelLr.transform(test)
 
-  // Displaying the first three rows of the prediction DataFrame
-  predictionsLr.show(3)
+//  val result  = predictionsLr.select("prediction")
+//  result.show(3)
 
+//  val labelConverter = new IndexToString()
+//    .setInputCol("label")
+//    .setOutputCol("stringLabel")
+//
+//
+//
+//  val  labelConverted = labelConverter.transform(predictionsLr)
+//  labelConverted.show(20)
+//  // Displaying the first three rows of the prediction DataFrame
+//
+//  val predictionConverter = new IndexToString()
+//    .setInputCol("prediction")
+//    .setOutputCol("stringPrediction")
+//
+//  val converted = predictionConverter.transform(labelConverted)
+//  converted.show(20)
+
+  import org.apache.spark.ml.feature.IndexToString
+
+  // Assuming you have two indexed columns: "indexedLabel1" and "indexedLabel2"
+//  val labelConverter1 = new IndexToString()
+//    .setInputCol("label")
+//    .setOutputCol("stringLabel1")
+
+//  val labelConverter2 = new IndexToString()
+//    .setInputCol("prediction")
+//    .setOutputCol("stringLabel2")
+//
+//  // Assuming "data" is your DataFrame containing both indexed columns
+//
+//  val filteredData = result.filter(col("prediction").isNotNull)
+//  val dataWithLabels = labelConverter2.transform(filteredData)
+
+  // Now "dataWithLabels" contains two additional columns: "stringLabel1" and "stringLabel2"
+ // dataWithLabels.show(4)
   // Creating a MulticlassClassificationEvaluator
   val evaluatorLr = new MulticlassClassificationEvaluator()
     .setLabelCol("label")
