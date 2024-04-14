@@ -1,29 +1,23 @@
-import org.apache.spark.ml.PipelineModel
-import org.apache.spark.ml.feature.{IndexToString, StringIndexerModel}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.{col, udf}
 import org.apache.spark.sql.types.{ArrayType, StringType, StructType}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.expressions.UserDefinedFunction
 
+import java.io.File
+import java.nio.file.{Files, Paths}
 
-
-object Preprocessing extends App{
+object Evaluator extends App{
 // Initialize Spark session
 val spark = SparkSession.builder()
   .appName("StringIndexerTransformer")
   .config("spark.master", "local[2]")
   .getOrCreate()
 
-// Read the CSV file containing predictions and labels
-//val data = spark.read.option("header", "true").option("inferSchema", "true").csv("src/resources/result/csv/part-00000-0ef4a43e-98d6-4004-b987-7640cc96e5f5-c000.csv")
+  spark.sparkContext.setLogLevel("ERROR")
 
-// Assuming you have columns named "predictions" and "labels"
-//val predictionsAndLabels = data.select("prediction", "label")
-//
-//  predictionsAndLabels.show()
 
-  val pipelineRfModelPath = "/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/model/resources/models/pipelineModel2"
+  val pipelineRfModelPath = "/Users/shantanusachdeva/Documents/csye7200-project/model/resources/models/pipelineModel2"
 
   import org.apache.spark.ml.PipelineModel
   import org.apache.spark.ml.feature.StringIndexerModel
@@ -131,6 +125,7 @@ val spark = SparkSession.builder()
     "warezmaster" -> "r2l"
   )
 
+  val groupedByValue = categoryMap.groupBy(_._2).mapValues(_.keys.toSeq)
 
   // Define a User Defined Function (UDF) to map strings to categories
   val mapCategory = udf((string: String) => categoryMap.getOrElse(string, "Unknown"))
@@ -138,10 +133,78 @@ val spark = SparkSession.builder()
   // Apply the UDF to map strings to categories and create a new column
   val dfWithCategory = dfWithMappedColumn.withColumn("category", mapCategory(col("predictionString")))
 
-  dfWithCategory.show()
+  val attackTypes = Seq("probe", "dos", "r2l", "u2r")
 
-  dfWithCategory.groupBy("category").count().show(30)
+
+//  Create Pie Chart
+  val plot = new CreatePlot()
+
+  plot.createPieChart(dfWithCategory, "pieChart.png")
+
+
+
+  // Assuming dfWithCategory is the DataFrame with the "category" column
+  val groupedDf = dfWithCategory.groupBy("category", "predictionString").count()
+
+  // Convert to a Seq of (category, predictionString, count) tuples
+  val dataSeq = groupedDf.collect().map { row =>
+    val category = row.getAs[String]("category")
+    val predictionString = row.getAs[String]("predictionString")
+    val count = row.getAs[Long]("count")
+    (category, predictionString, count)
+  }.toSeq
+
+
+
+// Plot Bar Chart for attack type signatures for each attack
+  attackTypes.foreach(attack => {
+    val labels = dataSeq.filter(_._1 == attack).map(_._2)
+    val counts = dataSeq.filter(_._1 == attack).map(_._3)
+
+    val allLabels = groupedByValue.getOrElse(attack, Seq.empty)
+    val allCounts = allLabels.map(label => {
+      val index = labels.indexOf(label)
+      if (index != -1) counts(index).toDouble else 0.0
+    })
+
+
+    plot.createBarChart(allCounts,allLabels, attack)
+
+
+  })
+
+//  Find attack percentage
+  val normalCount = dfWithCategory.filter(col("category") === "normal").count()
+  val totalCount = dfWithCategory.count()
+  val attackPercent = ((totalCount.toDouble - normalCount.toDouble) / totalCount.toDouble) * 100
+
+  val sendEmailReport = new SendEmailReport
+  sendEmailReport.sendEmail("sachdeva.sh@northeastern.edu", attackPercent, "src/resources/result/plots")
+
+  val csvPath = "src/resources/result/csv"
+  val storeCSVPath = "src/resources/result/storeCSV"
+
+  val csvDirectory = new File(csvPath)
+  val storeCSVDirectory = new File(storeCSVPath)
+
+  if (!storeCSVDirectory.exists()) {
+    storeCSVDirectory.mkdir()
+  }
+
+  if (csvDirectory.exists() && csvDirectory.isDirectory) {
+    val csvFiles = csvDirectory.listFiles().filter(_.getName.endsWith(".csv"))
+    csvFiles.foreach { file =>
+      val sourcePath = file.toPath
+      val destPath = Paths.get(storeCSVPath, file.getName)
+      Files.move(sourcePath, destPath)
+      println(s"Moved ${file.getName} to $storeCSVPath")
+    }
+  } else {
+    println("CSV directory does not exist or is not a directory")
+  }
+
+
+
   spark.stop()
-
 
 }
