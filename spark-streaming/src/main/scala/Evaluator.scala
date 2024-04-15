@@ -11,7 +11,7 @@ import java.io.File
 import java.nio.file.{Files, Paths}
 
 object Evaluator extends App{
-// Initialize Spark session
+
   val dotenv = Dotenv.configure().load();
   val admin_email = dotenv.get("ADMIN_EMAIL")
   val spark = SparkSession.builder()
