@@ -3,8 +3,6 @@ from faker import Faker
 import json
 import time
 import random
-
-# Set Google Cloud project ID and Pub/Sub topic name
 project_id = "csye-7200-team-4"
 topic_id = "my-topic"
 

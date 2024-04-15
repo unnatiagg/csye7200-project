@@ -6,24 +6,28 @@ import org.apache.flink.streaming.connectors.gcp.pubsub.PubSubSink
 import java.util.Random
 import java.util.UUID
 import java.time.Instant
-
+/*
+This is a streaming data simulator using the apach-flink streaming library.
+This can be used to publish streaming events on the GCP pubsub using the flink-streaming-connector
+ */
 object StreamingDataSimulator {
   def main(args: Array[String]): Unit = {
-    // Set up the Flink execution environment
+
+    // Setting up the Flink execution environment
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
 
-    // Define the schema of the streaming data
+    // Defining the schema of the streaming data
     //DataStream
-    val streamData = env.generateSequence(1, 100) // Generate a sequence of integers as a placeholder
+    val streamData = env.generateSequence(1, 100)
 
-    // Generate synthetic data based on the schema
+    // Generating synthetic data based on the schema
     val simulatedData = streamData.map { _ =>
       val fake = new FakeDataGenerator()
       val random = new Random()
       val timeNow = Instant.now().getEpochSecond()
 
-      // Generate random data based on the schema
+      // Generating random data based on the schema
       val subscriberId = fake.uuid4()
       val srcIP = fake.ipv4()
       val dstIP = fake.ipv4()
@@ -40,24 +44,21 @@ object StreamingDataSimulator {
       s"""{"subscriberId": "$subscriberId", "srcIP": "$srcIP", "dstIP": "$dstIP", "srcPort": $srcPort, "dstPort": $dstPort, "txBytes": $txBytes, "rxBytes": $rxBytes, "startTime": $startTime, "endTime": $endTime, "tcpFlag": $tcpFlag, "protocolName": "$protocolName", "protocolNumber": $protocolNumber}"""
     }
 
-    // Set up Pub/Sub sink options
+    // Setting up Pub/Sub sink options
     val pubSubSink = PubSubSink.newBuilder()
       .withSerializationSchema(new SimpleStringSchema())
       .withProjectName("csye-7200-team-4")
       .withTopicName("my-topic")
       .build()
 
-    // Create Pub/Sub sink
-   // val pubSubSink = new PubSubSink[String](pubSubSinkOptions, new SimpleStringSchema())
-
-    // Publish the simulated data to the Pub/Sub topic
+    // Publishing the simulated data to the Pub/Sub topic
     simulatedData.addSink(pubSubSink)
 
-    // Execute the Flink job
+    // Executing the Flink job
     env.execute("Streaming Data Simulator")
   }
 
-  // Define a FakeDataGenerator class to generate UUIDs and IP addresses
+  //FakeDataGenerator class to generate UUIDs and IP addresses
   class FakeDataGenerator {
     def uuid4(): String = UUID.randomUUID().toString
 
