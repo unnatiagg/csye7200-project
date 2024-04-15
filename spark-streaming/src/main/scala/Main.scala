@@ -24,7 +24,7 @@ object SparkStreamingNetworkData {
     val rfModelPath = "/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/model/resources/models/random_forest_classification"
     val rfModel = RandomForestClassificationModel.load(rfModelPath)
 
-    val pipelineRfModelPath = "/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/model/resources/models/pipelineModel2"
+    val pipelineRfModelPath = "/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/model/resources/models/pipelineModeltest"
     val pipelineRfModel = PipelineModel.load(pipelineRfModelPath)
 
     // val pipelineModelPath = "src/resources/models/pipelineModel"
@@ -85,15 +85,15 @@ object SparkStreamingNetworkData {
       .add("dst_host_srv_serror_rate", DoubleType, nullable = false)
       .add("dst_host_rerror_rate", DoubleType, nullable = false)
       .add("dst_host_srv_rerror_rate", DoubleType, nullable = false)
-      .add("attack", StringType, nullable = false)
-      .add("last_flag", StringType, nullable = false)
+      //.add("attack", StringType, nullable = false)
+      //.add("last_flag", StringType, nullable = false)
 
     val nLogs = df.selectExpr("cast(value as string)")
       .select(from_json(col("value"), eventDataSchema).as("data"))
       .select("data.*")
 
     def processStreamingData(batchDF: DataFrame): DataFrame = {
-      rfModel.transform(pipelineRfModel.transform(batchDF)).select("label", "prediction")
+      rfModel.transform(pipelineRfModel.transform(batchDF)).select("prediction")
     }
 
     val nPredictions = processStreamingData(nLogs)

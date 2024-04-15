@@ -17,7 +17,7 @@ val spark = SparkSession.builder()
   spark.sparkContext.setLogLevel("ERROR")
 
 
-  val pipelineRfModelPath = "/Users/shantanusachdeva/Documents/csye7200-project/model/resources/models/pipelineModel2"
+  val pipelineRfModelPath = "/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/model/resources/models/pipelineModel2"
 
   import org.apache.spark.ml.PipelineModel
   import org.apache.spark.ml.feature.StringIndexerModel
@@ -44,7 +44,7 @@ val spark = SparkSession.builder()
   println(dictionary)
 
   val resultSchema = new StructType()
-    .add(name = "label", DoubleType, nullable = false)
+    //.add(name = "label", DoubleType, nullable = false)
     .add(name = "prediction", DoubleType, nullable = false)
 
   val outputResultPath = "src/resources/result/csv/"

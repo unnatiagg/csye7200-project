@@ -5,6 +5,7 @@
 *.class
 *.log
 
+*/result/*
 target/
 project/target/
 api/
@@ -17,3 +18,5 @@ output\.html
 /draft final.pages
 /.bsp/
 /logFile
+**/result/**
+**/.env

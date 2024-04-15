@@ -49,9 +49,9 @@ object KafkaDataCSV {
                         dst_host_serror_rate: Double,
                         dst_host_srv_serror_rate: Double,
                         dst_host_rerror_rate: Double,
-                        dst_host_srv_rerror_rate: Double,
-                        attack: String,
-                        last_flag: String
+                        dst_host_srv_rerror_rate: Double
+                        //attack: String,
+                       // last_flag: String
                       )
 
 
@@ -133,8 +133,8 @@ object KafkaDataCSV {
         dst_host_srv_serror_rate = tokens(38).toDouble,
         dst_host_rerror_rate = tokens(39).toDouble,
         dst_host_srv_rerror_rate = tokens(40).toDouble,
-        attack = tokens(41),
-        last_flag = tokens(42)
+       // attack = tokens(41),
+       // last_flag = tokens(42)
       ))
     } catch {
       case _: NumberFormatException => None
