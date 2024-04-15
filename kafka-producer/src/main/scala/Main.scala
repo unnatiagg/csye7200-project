@@ -6,8 +6,18 @@ import scala.util.Random
 import scala.concurrent.duration._
 import java.io.File
 import scala.io.Source
+import io.github.cdimascio.dotenv.Dotenv
 
+/*
+This class is used to parse the logs from the csv file and create Event Data Objects
+org.apache.kafka.common.serialization.StringSerializer is used for Serializing the Event Data Objects
+For the records, where the parsing was not successful they are not sent into the pipeline
+ */
 object KafkaDataCSV {
+
+  /*
+  Schema for the Log/event data
+   */
   case class EventData(
                         duration: Int,
                         protocol_type: String,
@@ -50,21 +60,24 @@ object KafkaDataCSV {
                         dst_host_srv_serror_rate: Double,
                         dst_host_rerror_rate: Double,
                         dst_host_srv_rerror_rate: Double
-                        //attack: String,
-                       // last_flag: String
                       )
 
 
 
+  /*
+  Main function for parsing each record in the Log file and generating an Event Data objecy
+  Each Object is then serialized using com.google.gson.Gson and org.apache.kafka.common.serialization.StringSerializer
+  before publishing onto the kafka topic
+   */
   def main(args: Array[String]): Unit = {
-    //val faker = new scala.util.Random
     val kafkaProps = new Properties()
     kafkaProps.put("bootstrap.servers", "localhost:9092")
     kafkaProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
     kafkaProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
     val producer = new KafkaProducer[String, String](kafkaProps)
-    val csvFilePath = "src/main/resources/Test.csv"
-    val topic = "data-stream"
+    val dotenv = Dotenv.configure().load();
+    val csvFilePath = dotenv.get("LOG_CSV_PATH")
+    val topic = dotenv.get("TOPIC_NAME")
     val csvSource = Source.fromFile(csvFilePath)
     val csvLines = csvSource.getLines().toList
 
@@ -81,11 +94,14 @@ object KafkaDataCSV {
         }
         case None => println(s"This record cannot be parsed")
       }
-      //key value
+
     }
     producer.close()
   }
 
+  /*
+  Parsing each string from the csv file into an EventData Object
+   */
   def generateEventData(s: String): Option[EventData] = {
 
     val tokens = s.split(",").toList
@@ -132,9 +148,7 @@ object KafkaDataCSV {
         dst_host_serror_rate = tokens(37).toDouble,
         dst_host_srv_serror_rate = tokens(38).toDouble,
         dst_host_rerror_rate = tokens(39).toDouble,
-        dst_host_srv_rerror_rate = tokens(40).toDouble,
-       // attack = tokens(41),
-       // last_flag = tokens(42)
+        dst_host_srv_rerror_rate = tokens(40).toDouble
       ))
     } catch {
       case _: NumberFormatException => None
