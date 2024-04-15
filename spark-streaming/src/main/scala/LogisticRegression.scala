@@ -6,15 +6,12 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
 
 object LogisticRegression extends App {
-
-  print("Hello")
-
   val spark = SparkSession.builder()
     .appName("LogisticRegression")
     .config("spark.master", "local")
     .getOrCreate()
 
-  spark.sparkContext.setLogLevel("ERROR") // We want to ignore all of the INFO and WARN messages.
+  spark.sparkContext.setLogLevel("ERROR")
 
   val eventDataSchema = new StructType()
     .add("duration", IntegerType, nullable = false)
@@ -63,10 +60,9 @@ object LogisticRegression extends App {
 
   val df = spark.read
   .format("csv")
-  //.option("header", true)
   .option("sep", ",")
   .schema(eventDataSchema)
-  .load("/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/spark-streaming/src/resources/data/Train.csv")
+  .load("src/resources/data/Train.csv")
 
   df.printSchema()
 
@@ -117,24 +113,20 @@ object LogisticRegression extends App {
     "dst_host_srv_rerror_rate"
   )
 
-  // Step 2: Create StringIndexers for string columns
   val stringIndexers = stringColumns.map { col =>
     new StringIndexer()
       .setInputCol(col)
       .setOutputCol(s"${col}_index")
   }
 
-  // Step 3: Assemble string columns into a single feature vector
   val stringAssembler = new VectorAssembler()
     .setInputCols(stringColumns.map(_ + "_index"))
     .setOutputCol("string_features")
 
-  // Step 4: Assemble numerical columns into a single feature vector
   val numericalAssembler = new VectorAssembler()
     .setInputCols(numericalColumns)
     .setOutputCol("numerical_features")
 
-  // Step 5: Combine both string and numerical feature vectors into a final feature vector
   val assembler = new VectorAssembler()
     .setInputCols(Array("string_features", "numerical_features"))
     .setOutputCol("features")
@@ -143,53 +135,28 @@ object LogisticRegression extends App {
     .setInputCol("attack")
     .setOutputCol("label")
 
-  // Step 6: Define a pipeline
   val pipeline = new Pipeline().setStages(stringIndexers ++ Array(stringAssembler, numericalAssembler, assembler, labelIndexer ))
-
-  //  Data Preparation
-
-  //val featureCols = df.columns.slice(0, df.columns.length - 2)
-
-
-//  val assembler = new VectorAssembler()
-//    .setInputCols(featureCols)
-//    .setOutputCol("features")
-
- // val stages = Array(assembler, labelIndexer)
-//  val pipeline = new Pipeline().setStages(stages)
   val pipelineModel = pipeline.fit(df)
   val data = pipelineModel.transform(df).select("features", "label")
-//
+
   val Array(train, test) = data.randomSplit(Array(0.7, 0.3))
 
   val lr = new LogisticRegression().setRegParam(0.01)
   val modelLr = lr.fit(train)
-
-  // Making predictions
   val predictionsLr = modelLr.transform(test)
-
-  // Displaying the first three rows of the prediction DataFrame
-  predictionsLr.show(3)
-
-  // Creating a MulticlassClassificationEvaluator
   val evaluatorLr = new MulticlassClassificationEvaluator()
     .setLabelCol("label")
     .setPredictionCol("prediction")
     .setMetricName("accuracy")
 
-  // Evaluating the model
   val elr = evaluatorLr.evaluate(predictionsLr)
-
-  // Printing the results
   println("--- Logistic Regression --- ")
   println(s"Accuracy Rate = ${"%.4f".format(elr)}")
   println(s"  Error  Rate = ${"%.4f".format(1.0 - elr)}")
-
-  // Saving the model
-  val lrmodelPath = "model/resources/models/logistic_regresssion"
+  val lrmodelPath = "../model/resources/models/logistic_regresssion"
   modelLr.write.overwrite().save(lrmodelPath)
 
-  val pipelineModelPath = "model/resources/models/pipelineModel"
+  val pipelineModelPath = "../model/resources/models/pipelineModelLogisticRegression"
   pipelineModel.write.overwrite().save(pipelineModelPath)
 
 }

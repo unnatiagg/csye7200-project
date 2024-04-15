@@ -6,6 +6,11 @@ import java.io.File
 
 class CreatePlot {
 
+
+  /*
+  This method is used to create a Pie Chart for attack distribution by category as predicted by our model
+  The 5 categories: NORMAL, PROBE, DOS, R2L, U2L
+   */
   def createPieChart(dfWithCategory: DataFrame, outputFileName: String) = {
 
     val groupeddf = dfWithCategory.groupBy("category").count()
@@ -23,11 +28,20 @@ class CreatePlot {
       .rightLegend(labels = Some(attackTypes))
       .render()
 
+    /*
+    We want to save these plots to accumulate them later while sending the detailed report
+     */
+
     val outputFile = new File("src/resources/result/plots/"+outputFileName)
     pieplot.write(outputFile)
 
   }
 
+  /*
+  This method show the sub-categories of each of the attack type
+  We display which sub-categories belong to each attack type
+  What is the count distribution of each of the sub category
+   */
   def createBarChart(counts: Seq[Double], labels: Seq[String], attack: String) = {
     val plot = BarChart(counts)
       .standard(xLabels = labels)

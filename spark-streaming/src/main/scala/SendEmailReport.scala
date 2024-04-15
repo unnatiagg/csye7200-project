@@ -10,15 +10,19 @@ class SendEmailReport {
 
   val dotenv = Dotenv.configure().load();
   val SENDGRID_API_KEY = dotenv.get("SENDGRID_API_KEY")
+  val SENDER_EMAIL = dotenv.get("SENDER_EMAIL")
   val sg = new SendGrid(SENDGRID_API_KEY);
-  val sender = new Email("networkreport@em6774.sachdevacloud.com")
+  val sender = new Email(SENDER_EMAIL)
 
+  /*
+  This method is used a detailed report to the Network Admin.
+   */
   def sendEmail(to: String, attackPercent: Double, plotsPath: String) = {
 
     val receiver = new Email(to)
     val subject = "Network Data Report"
 
-    // Load the image file and convert it to base64
+    // Loading the image file and convert it to base64
     val pieChartData = Files.readAllBytes(Paths.get(s"$plotsPath/pieChart.png"))
     val pieChartAttachment = java.util.Base64.getEncoder.encodeToString(pieChartData)
 
@@ -31,7 +35,7 @@ class SendEmailReport {
       "probe" -> "surveillance and other probing, e.g., port scanning"
     )
 
-    // Create <img> tags for each attack type
+    // Creating <img> tags for each attack type
     val attackImages = attackTypes.map { attackType =>
       val imagePath = s"$plotsPath/$attackType.png"
       val imageData = Files.readAllBytes(Paths.get(imagePath))
@@ -59,7 +63,7 @@ class SendEmailReport {
          |</html>
          |""".stripMargin
 
-    // Save the HTML content to a file
+    // Saving the HTML content to a file
     val htmlFilePath = "email_template.html"
     Files.write(Paths.get(htmlFilePath), contentString.getBytes())
 
@@ -89,12 +93,6 @@ class SendEmailReport {
 
 
   }
-
-
-
-
-
-
 
 
 }

@@ -1,5 +1,5 @@
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.classification.{LogisticRegression, RandomForestClassifier}
+import org.apache.spark.ml.classification.{RandomForestClassifier}
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorAssembler}
 import org.apache.spark.sql.SparkSession
@@ -8,15 +8,12 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 
 object RandomForestClassifier extends App {
-
-  print("Hello")
-
   val spark = SparkSession.builder()
     .appName("LogisticRegression")
     .config("spark.master", "local")
     .getOrCreate()
 
-  spark.sparkContext.setLogLevel("ERROR") // We want to ignore all of the INFO and WARN messages.
+  spark.sparkContext.setLogLevel("ERROR")
 
   val eventDataSchema = new StructType()
     .add("duration", IntegerType, nullable = false)
@@ -68,7 +65,7 @@ object RandomForestClassifier extends App {
     //.option("header", true)
     .option("sep", ",")
     .schema(eventDataSchema)
-    .load("/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/spark-streaming/src/resources/data/Train.csv")
+    .load("src/resources/data/Train.csv")
 
   df.printSchema()
 
@@ -119,24 +116,20 @@ object RandomForestClassifier extends App {
     "dst_host_srv_rerror_rate"
   )
 
-  // Step 2: Create StringIndexers for string columns
   val stringIndexers = stringColumns.map { col =>
     new StringIndexer()
       .setInputCol(col)
       .setOutputCol(s"${col}_index")
   }
 
-  // Step 3: Assemble string columns into a single feature vector
   val stringAssembler = new VectorAssembler()
     .setInputCols(stringColumns.map(_ + "_index"))
     .setOutputCol("string_features")
 
-  // Step 4: Assemble numerical columns into a single feature vector
   val numericalAssembler = new VectorAssembler()
     .setInputCols(numericalColumns)
     .setOutputCol("numerical_features")
 
-  // Step 5: Combine both string and numerical feature vectors into a final feature vector
   val assembler = new VectorAssembler()
     .setInputCols(Array("string_features", "numerical_features"))
     .setOutputCol("features")
@@ -146,92 +139,31 @@ object RandomForestClassifier extends App {
     .setOutputCol("label")
     .setHandleInvalid("keep")
 
-  // Step 6: Define a pipeline
+
   val pipeline = new Pipeline().setStages(stringIndexers ++ Array(stringAssembler, numericalAssembler, assembler, labelIndexer ))
-
-  //  Data Preparation
-
-  //val featureCols = df.columns.slice(0, df.columns.length - 2)
-
-
-  //  val assembler = new VectorAssembler()
-  //    .setInputCols(featureCols)
-  //    .setOutputCol("features")
-
-  // val stages = Array(assembler, labelIndexer)
-  //  val pipeline = new Pipeline().setStages(stages)
   val pipelineModel = pipeline.fit(df)
   val data = pipelineModel.transform(df).select("features", "label")
-  //
   val Array(train, test) = data.randomSplit(Array(0.7, 0.3))
 
   val rf = new RandomForestClassifier()
     .setLabelCol("label")
     .setFeaturesCol("features")
     .setMaxBins(100)
-    .setNumTrees(10) // Set the number of trees in the forest
+    .setNumTrees(10) // Setting the number of trees in the forest
   val modelLr = rf.fit(train)
-
-  // Making predictions
   val predictionsLr = modelLr.transform(test)
-
-//  val result  = predictionsLr.select("prediction")
-//  result.show(3)
-
-//  val labelConverter = new IndexToString()
-//    .setInputCol("label")
-//    .setOutputCol("stringLabel")
-//
-//
-//
-//  val  labelConverted = labelConverter.transform(predictionsLr)
-//  labelConverted.show(20)
-//  // Displaying the first three rows of the prediction DataFrame
-//
-//  val predictionConverter = new IndexToString()
-//    .setInputCol("prediction")
-//    .setOutputCol("stringPrediction")
-//
-//  val converted = predictionConverter.transform(labelConverted)
-//  converted.show(20)
-
-  import org.apache.spark.ml.feature.IndexToString
-
-  // Assuming you have two indexed columns: "indexedLabel1" and "indexedLabel2"
-//  val labelConverter1 = new IndexToString()
-//    .setInputCol("label")
-//    .setOutputCol("stringLabel1")
-
-//  val labelConverter2 = new IndexToString()
-//    .setInputCol("prediction")
-//    .setOutputCol("stringLabel2")
-//
-//  // Assuming "data" is your DataFrame containing both indexed columns
-//
-//  val filteredData = result.filter(col("prediction").isNotNull)
-//  val dataWithLabels = labelConverter2.transform(filteredData)
-
-  // Now "dataWithLabels" contains two additional columns: "stringLabel1" and "stringLabel2"
- // dataWithLabels.show(4)
-  // Creating a MulticlassClassificationEvaluator
   val evaluatorLr = new MulticlassClassificationEvaluator()
     .setLabelCol("label")
     .setPredictionCol("prediction")
     .setMetricName("accuracy")
-
-  // Evaluating the model
   val elr = evaluatorLr.evaluate(predictionsLr)
-
-  // Printing the results
   println("--- Random Forest Classifier --- ")
   println(s"Accuracy Rate = ${"%.4f".format(elr)}")
   println(s"  Error  Rate = ${"%.4f".format(1.0 - elr)}")
-
-  // Saving the model
-  val lrmodelPath = "model/resources/models/random_forest_classification"
+  val lrmodelPath = "../model/resources/models/random_forest_classification_model"
   modelLr.write.overwrite().save(lrmodelPath)
 
-  val pipelineModelPath = "model/resources/models/pipelineModel2"
+  val pipelineModelPath = "../model/resources/models/pipelineModelRandomForest"
   pipelineModel.write.overwrite().save(pipelineModelPath)
 
 }

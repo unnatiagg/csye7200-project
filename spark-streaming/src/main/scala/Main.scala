@@ -18,20 +18,11 @@ object SparkStreamingNetworkData {
 
     spark.sparkContext.setLogLevel("ERROR")
 
-    // val lrmodelPath = "src/resources/models/logistic_regresssion"
-    //val lrModel = LogisticRegressionModel.load(lrmodelPath)
-
-    val rfModelPath = "/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/model/resources/models/random_forest_classification"
+    val rfModelPath = "../model/resources/models/random_forest_classification_model"
     val rfModel = RandomForestClassificationModel.load(rfModelPath)
-
-    val pipelineRfModelPath = "/Users/unnatiaggarwal/Documents/CSYE7200-PROJECT/final-csye7200-project/csye7200-project/model/resources/models/pipelineModeltest"
+    val pipelineRfModelPath = "../model/resources/models/pipelineModelLogData"
     val pipelineRfModel = PipelineModel.load(pipelineRfModelPath)
-
-    // val pipelineModelPath = "src/resources/models/pipelineModel"
-    // val pipelineModel = PipelineModel.load(pipelineModelPath)
-
     val outputResultPath = "src/resources/result/csv"
-
     val checkpointPath = "src/resources/result/metadata"
 
     val df = spark.readStream
@@ -85,8 +76,7 @@ object SparkStreamingNetworkData {
       .add("dst_host_srv_serror_rate", DoubleType, nullable = false)
       .add("dst_host_rerror_rate", DoubleType, nullable = false)
       .add("dst_host_srv_rerror_rate", DoubleType, nullable = false)
-      //.add("attack", StringType, nullable = false)
-      //.add("last_flag", StringType, nullable = false)
+
 
     val nLogs = df.selectExpr("cast(value as string)")
       .select(from_json(col("value"), eventDataSchema).as("data"))
@@ -102,13 +92,11 @@ object SparkStreamingNetworkData {
     val query = nPredictions.writeStream
       .format("csv")
       .option("header", "true")
-      .option("checkpointLocation", checkpointPath) // Specify checkpoint location
+      .option("checkpointLocation", checkpointPath)
       .outputMode("append")
       .option("path", outputResultPath)
       .start()
 
-
-    // Start the streaming query
     query.awaitTermination()
 
   }
