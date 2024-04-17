@@ -25,11 +25,14 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-mllib" % sparkVersion,
   "com.sendgrid" % "sendgrid-java" % "4.10.2",
   "io.github.cdimascio" % "dotenv-java" % "3.0.0",
-  "io.github.cibotech" %% "evilplot" % "0.9.0"
+  "io.github.cibotech" %% "evilplot" % "0.9.0",
+
   // kafka
 //  "org.apache.kafka" %% "kafka" % kafkaVersion,
 //  "org.apache.kafka" % "kafka-streams" % kafkaVersion
 )
+
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.2" % "test"
 
 // META-INF discarding
 assemblyMergeStrategy in assembly := {

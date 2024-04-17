@@ -21,3 +21,4 @@ output\.html
 **/result/**
 **/.env
 **/email_template.html/**
+**/.DS_Store
