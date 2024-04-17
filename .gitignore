@@ -20,3 +20,4 @@ output\.html
 /logFile
 **/result/**
 **/.env
+**/email_template.html/**

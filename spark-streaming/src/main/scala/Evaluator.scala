@@ -7,9 +7,6 @@ import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.feature.StringIndexerModel
 import io.github.cdimascio.dotenv.Dotenv
 
-import java.io.File
-import java.nio.file.{Files, Paths}
-
 object Evaluator extends App{
 
   val dotenv = Dotenv.configure().load();
@@ -96,7 +93,8 @@ object Evaluator extends App{
     "spy" -> "r2l",
     "teardrop" -> "dos",
     "warezclient" -> "r2l",
-    "warezmaster" -> "r2l"
+    "warezmaster" -> "r2l",
+    "new_attack" -> "Unknown"
   )
 
 
@@ -107,7 +105,7 @@ object Evaluator extends App{
    */
   val mapCategory = udf((string: String) => categoryMap.getOrElse(string, "Unknown"))
   val dfWithCategory = dfWithMappedColumn.withColumn("category", mapCategory(col("predictionString")))
-  val attackTypes = Seq("probe", "dos", "r2l", "u2r")
+  val attackTypes = Seq("probe", "dos", "r2l", "u2r", "Unknown")
 
 
   /*
@@ -115,7 +113,8 @@ object Evaluator extends App{
   This Pie Chart will have a distribution of the total records categorized as NORMAL, PROBE, DOS, R2L, U2L
    */
   val plot = new CreatePlot()
-  plot.createPieChart(dfWithCategory, "pieChart.png")
+  val plotsBasePath = "src/resources/result/plots/"
+  plot.createPieChart(dfWithCategory, plotsBasePath)
   val groupedDf = dfWithCategory.groupBy("category", "predictionString").count()
 
 
@@ -146,7 +145,7 @@ object Evaluator extends App{
       val index = labels.indexOf(label)
       if (index != -1) counts(index).toDouble else 0.0
     })
-    plot.createBarChart(allCounts,allLabels, attack)
+    plot.createBarChart(allCounts,allLabels, attack, plotsBasePath)
 
 
   })
@@ -165,34 +164,17 @@ object Evaluator extends App{
   We have a detailed setup, to send a detailed report with all our findings to an email
   We have used Amazon Simple Notification Service for this implementation
    */
-
   val sendEmailReport = new SendEmailReport
-  sendEmailReport.sendEmail(admin_email, attackPercent, "src/resources/result/plots")
+  sendEmailReport.sendEmail(admin_email, attackPercent, plotsBasePath)
 
 
   /*
-  Persisting the predictions for future references
-   */
-  val csvPath = "src/resources/result/csv"
-  val storeCSVPath = "src/resources/result/storeCSV"
-  val csvDirectory = new File(csvPath)
-  val storeCSVDirectory = new File(storeCSVPath)
+    Persisting the predictions for future references
+     */
+  Utils.transferCSV("src/resources/result/csv", "src/resources/result/storeCSV")
 
-  if (!storeCSVDirectory.exists()) {
-    storeCSVDirectory.mkdir()
-  }
 
-  if (csvDirectory.exists() && csvDirectory.isDirectory) {
-    val csvFiles = csvDirectory.listFiles().filter(_.getName.endsWith(".csv"))
-    csvFiles.foreach { file =>
-      val sourcePath = file.toPath
-      val destPath = Paths.get(storeCSVPath, file.getName)
-      Files.move(sourcePath, destPath)
-      println(s"Moved ${file.getName} to $storeCSVPath")
-    }
-  } else {
-    println("CSV directory does not exist or is not a directory")
-  }
+
   spark.stop()
 
 }

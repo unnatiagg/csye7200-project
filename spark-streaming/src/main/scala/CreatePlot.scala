@@ -11,12 +11,12 @@ class CreatePlot {
   This method is used to create a Pie Chart for attack distribution by category as predicted by our model
   The 5 categories: NORMAL, PROBE, DOS, R2L, U2L
    */
-  def createPieChart(dfWithCategory: DataFrame, outputFileName: String) = {
+  def createPieChart(dfWithCategory: DataFrame, plotsBasePath: String) = {
 
     val groupeddf = dfWithCategory.groupBy("category").count()
     val seqDFCat = groupeddf.collect().map(arr => (arr(0).toString, arr(1).toString.toDouble)).toSeq
 
-    val attackTypes = Seq("probe", "dos", "r2l", "u2r", "normal")
+    val attackTypes = Seq("probe", "dos", "r2l", "u2r", "normal", "Unknown")
 
     val attachTypesCount = attackTypes.map(attack => seqDFCat.find(_._1 ==attack)match {
       case Some(value) => ""-> value._2
@@ -32,7 +32,7 @@ class CreatePlot {
     We want to save these plots to accumulate them later while sending the detailed report
      */
 
-    val outputFile = new File("src/resources/result/plots/"+outputFileName)
+    val outputFile = new File(plotsBasePath+"pieChart.png")
     pieplot.write(outputFile)
 
   }
@@ -42,14 +42,14 @@ class CreatePlot {
   We display which sub-categories belong to each attack type
   What is the count distribution of each of the sub category
    */
-  def createBarChart(counts: Seq[Double], labels: Seq[String], attack: String) = {
+  def createBarChart(counts: Seq[Double], labels: Seq[String], attack: String, plotsBasePath: String) = {
     val plot = BarChart(counts)
       .standard(xLabels = labels)
       .xLabel("Attack")
       .yLabel("Count")
       .render()
 
-    val outputFile = new File("src/resources/result/plots/" + attack + ".png")
+    val outputFile = new File(plotsBasePath + attack + ".png")
     plot.write(outputFile)
   }
 

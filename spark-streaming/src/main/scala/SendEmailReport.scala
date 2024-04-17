@@ -26,13 +26,14 @@ class SendEmailReport {
     val pieChartData = Files.readAllBytes(Paths.get(s"$plotsPath/pieChart.png"))
     val pieChartAttachment = java.util.Base64.getEncoder.encodeToString(pieChartData)
 
-    val attackTypes = Seq("probe", "dos", "r2l", "u2r")
+    val attackTypes = Seq("probe", "dos", "r2l", "u2r", "Unknown")
 
     val attackDescriptions = Map(
       "dos" -> "denial-of-service, e.g. syn flood",
       "r2l" -> "unauthorized access from a remote machine, e.g. guessing password",
       "u2r" -> "unauthorized access to local superuser (root) privileges, e.g., various 'buffer overflow' attacks",
-      "probe" -> "surveillance and other probing, e.g., port scanning"
+      "probe" -> "surveillance and other probing, e.g., port scanning",
+      "Unknown"-> "Unidentified novel attacks are variants of known attacks"
     )
 
     // Creating <img> tags for each attack type
@@ -63,9 +64,9 @@ class SendEmailReport {
          |</html>
          |""".stripMargin
 
-    // Saving the HTML content to a file
-    val htmlFilePath = "email_template.html"
-    Files.write(Paths.get(htmlFilePath), contentString.getBytes())
+//    // Saving the HTML content to a file
+//    val htmlFilePath = "email_template.html"
+//    Files.write(Paths.get(htmlFilePath), contentString.getBytes())
 
 
 
@@ -93,6 +94,8 @@ class SendEmailReport {
 
 
   }
+
+
 
 
 }
